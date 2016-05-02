@@ -106,6 +106,13 @@ impl Chip8 {
         match self.opcode & 0xF000 {
             0x0000 => {
                 match self.opcode {
+                    0x00E0 => {
+                        // 0x00E0: Clears the screen
+                        for i in 0..NPIXELS {
+                            self.graphics[i] = 0;
+                        }
+                        self.pc += 2;
+                    }
                     0x00EE => {
                         // 0x00EE: Return from subroutine
                         self.sp -= 1;
@@ -361,6 +368,18 @@ impl Chip8 {
 #[cfg(test)]
 mod test {
     use super::Chip8;
+
+    #[test]
+    fn op00E0() {
+        let mut chip = Chip8::new();
+        chip.loadHex(&vec![0x00, 0xE0]);
+        chip.graphics[1] = 1;
+        assert_eq!(chip.pc, 512);
+
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 514);
+        assert_eq!(chip.graphics[1], 0);
+    }
 
     #[test]
     fn op00EE() {
