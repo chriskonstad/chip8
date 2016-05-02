@@ -1,3 +1,6 @@
+extern crate rand;
+
+use rand::Rng;
 use std::mem;
 use std::num::Wrapping;
 use std::vec::Vec;
@@ -99,7 +102,7 @@ impl Chip8 {
     }
 
     pub fn executeOpcode(&mut self) {
-        // TODO Fill in table
+        // TODO Fill in table, including the missing opcdoes (0x8__5, etc)
         match self.opcode & 0xF000 {
             0x1000 => {
                 // 0x1NNN: Jump to address NNN
@@ -233,17 +236,74 @@ impl Chip8 {
                 let address = self.opcode & 0x0FFF;
                 self.pc = address + self.reg[0] as u16;
             }
+            0xC000 => {
+                // 0xCXNN: regX = random number & NN
+                let x = (self.opcode & 0x0F00) >> 8;
+                let nn = (self.opcode & 0x00FF) as u8;
+                self.reg[x as usize] = nn & (rand::thread_rng().gen_range(0,255) as u8);
+                self.pc += 2;
+            }
+            0xE000 => {
+                match self.opcode & 0x00FF {
+                    0x009E => {
+                        // 0xEX9E: Skips next instruction if key store in regX is pressed
+                        let x = (self.opcode & 0x0F00) >> 8;
+                        if self.key[self.reg[x as usize] as usize] != 0 {
+                            self.pc += 2;
+                        }
+                        self.pc += 2;
+                    }
+                    0x00A1 => {
+                        // 0xEXA1: Skips next instruction if key store in regX is not pressed
+                        let x = (self.opcode & 0x0F00) >> 8;
+                        if self.key[self.reg[x as usize] as usize] == 0 {
+                            self.pc += 2;
+                        }
+                        self.pc += 2;
+                    }
+                    _ => panic!("Opcode {:#X} is bad", self.opcode),
+                }
+            },
+            0xF000 => {
+                match self.opcode & 0x00FF {
+                    0x0007 => {
+                        // 0xFX07: Sets regX to the value of the delay timer
+                        let x = (self.opcode & 0x0F00) >> 8;
+                        self.reg[x as usize] = self.timer_delay;
+                        self.pc += 2;
+                    }
+                    0x0015 => {
+                        // 0xFX15: Sets delay timer to regX
+                        let x = (self.opcode & 0x0F00) >> 8;
+                        self.timer_delay = self.reg[x as usize];
+                        self.pc += 2;
+                    }
+                    0x0018 => {
+                        // 0xFX18: Sets sound timer to regX
+                        let x = (self.opcode & 0x0F00) >> 8;
+                        self.timer_sound = self.reg[x as usize];
+                        self.pc += 2;
+                    }
+                    0x001E => {
+                        // 0xFX1E: Add regX to index
+                        let x = (self.opcode & 0x0F00) >> 8;
+                        self.index += self.reg[x as usize] as u16;
+                        self.pc += 2;
+                    }
+                    _ => panic!("Opcode {:#X} is bad", self.opcode),
+                }
+            },
             _ => panic!("Opcode {:#X} is bad", self.opcode),
         }
     }
 
     pub fn updateTimers(&mut self) {
-        if(self.timer_delay > 0) {
+        if self.timer_delay > 0 {
             self.timer_delay -= 1;
         }
 
-        if(self.timer_sound > 0) {
-            if(self.timer_sound == 1) {
+        if self.timer_sound > 0 {
+            if self.timer_sound == 1 {
                 // TODO beep
                 unimplemented!();
             }
@@ -482,5 +542,87 @@ mod test {
         chip.emulateCycle();
         assert_eq!(chip.index, 0);
         assert_eq!(chip.pc, 0x666 + 0x5);
+    }
+
+    #[test]
+    fn opEx9e() {
+        let mut chip = Chip8::new();
+        chip.loadHex(&vec![0xE1, 0x9E, 0xE1, 0x9E]);
+        chip.reg[1] = 1;
+        chip.key[1] = 0;
+        assert_eq!(chip.pc, 512);
+
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 514);
+        chip.key[1] = 1;
+
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 518);
+    }
+
+    #[test]
+    fn opExa1() {
+        let mut chip = Chip8::new();
+        chip.loadHex(&vec![0xE1, 0xA1, 0xE1, 0xA1]);
+        chip.reg[1] = 1;
+        chip.key[1] = 1;
+        assert_eq!(chip.pc, 512);
+
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 514);
+        chip.key[1] = 0;
+
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 518);
+    }
+
+    #[test]
+    fn opFx07() {
+        let mut chip = Chip8::new();
+        chip.loadHex(&vec![0xF1, 0x07]);
+        chip.timer_delay = 10;
+        assert_eq!(chip.pc, 512);
+
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 514);
+        assert_eq!(chip.reg[1], 10);
+    }
+
+    #[test]
+    fn opFx15() {
+        let mut chip = Chip8::new();
+        chip.loadHex(&vec![0xF1, 0x15]);
+        chip.reg[1] = 10;
+        assert_eq!(chip.pc, 512);
+
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 514);
+        assert_eq!(chip.timer_delay, 9);
+    }
+
+    #[test]
+    fn opFx18() {
+        let mut chip = Chip8::new();
+        chip.loadHex(&vec![0xF1, 0x18]);
+        chip.reg[1] = 10;
+        assert_eq!(chip.pc, 512);
+
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 514);
+        assert_eq!(chip.timer_sound, 9);
+    }
+
+    #[test]
+    fn opFx1E() {
+        let mut chip = Chip8::new();
+        chip.loadHex(&vec![0xF1, 0x1E]);
+        chip.reg[1] = 10;
+        let init_index = chip.index;
+        assert_eq!(chip.pc, 512);
+
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 514);
+        assert_eq!(chip.index, init_index + chip.reg[1] as u16);
+        assert_eq!(chip.reg[1], 10);
     }
 }
