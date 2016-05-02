@@ -104,6 +104,16 @@ impl Chip8 {
     pub fn executeOpcode(&mut self) {
         // TODO Fill in table, including the missing opcdoes (0x8__5, etc)
         match self.opcode & 0xF000 {
+            0x0000 => {
+                match self.opcode {
+                    0x00EE => {
+                        // 0x00EE: Return from subroutine
+                        self.sp -= 1;
+                        self.pc = self.stack[self.sp as usize];
+                    }
+                    _ => panic!("Opcode {:#X} is bad", self.opcode),
+                }
+            }
             0x1000 => {
                 // 0x1NNN: Jump to address NNN
                 self.pc = self.opcode & 0x0FFF;
@@ -272,6 +282,17 @@ impl Chip8 {
                         self.reg[x as usize] = self.timer_delay;
                         self.pc += 2;
                     }
+                    0x000A => {
+                        // 0xFX0A: Wait for a keypress, halting operation, store in regX
+                        let x = ((self.opcode & 0x0F00) >> 8) as usize;
+                        for k in 0..0xF {
+                            if self.key[k as usize] != 0 {
+                                self.reg[x] = k as u8;
+                                self.pc += 2;
+                                break;
+                            }
+                        }
+                    }
                     0x0015 => {
                         // 0xFX15: Sets delay timer to regX
                         let x = (self.opcode & 0x0F00) >> 8;
@@ -340,6 +361,19 @@ impl Chip8 {
 #[cfg(test)]
 mod test {
     use super::Chip8;
+
+    #[test]
+    fn op00EE() {
+        let mut chip = Chip8::new();
+        chip.loadHex(&vec![0x00, 0xEE]);
+        chip.stack[0] = 0x42;
+        chip.sp = 1;
+        assert_eq!(chip.pc, 512);
+
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 0x42);
+        assert_eq!(chip.sp, 0);
+    }
 
     #[test]
     fn op1nnn() {
@@ -611,6 +645,23 @@ mod test {
         chip.emulateCycle();
         assert_eq!(chip.pc, 514);
         assert_eq!(chip.reg[1], 10);
+    }
+
+    #[test]
+    fn opFx0A() {
+        let mut chip = Chip8::new();
+        chip.loadHex(&vec![0xF1, 0x0A]);
+        assert_eq!(chip.reg[1], 0);
+        assert_eq!(chip.key[1], 0);
+        assert_eq!(chip.pc, 512);
+
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 512);
+        chip.key[1] = 1;
+
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 514);
+        assert_eq!(chip.reg[1], 1);
     }
 
     #[test]
