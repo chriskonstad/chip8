@@ -100,7 +100,6 @@ impl Chip8 {
 
     pub fn executeOpcode(&mut self) {
         // TODO Fill in table
-        println!("Opcode: {:#X}", self.opcode);
         match self.opcode & 0xF000 {
             0x1000 => {
                 // 0x1NNN: Jump to address NNN
@@ -196,8 +195,33 @@ impl Chip8 {
                         self.reg[((self.opcode & 0x0F00) >> 8) as usize] = (x + y).0;
                         self.pc += 2;
                     }
+                    0x0006 => {
+                        // 0x8X_6: Shifts regX right by one, setting regF to lsb of regX before
+                        let x = (self.opcode & 0x0F00) >> 8;
+                        let lsb = (self.reg[x as usize] & 0x0001) as u8;
+                        self.reg[0xF] = lsb;
+                        self.reg[x as usize] = self.reg[x as usize] >> 1;
+                        self.pc += 2;
+                    }
+                    0x000E => {
+                        // 0x8X_E: Shifts regX left by one, setting regF to msb of regX before
+                        let x = (self.opcode & 0x0F00) >> 8;
+                        let msb = ((self.reg[x as usize] & 0x80) as u8) >> 7;
+                        self.reg[0xF] = msb;
+                        self.reg[x as usize] = self.reg[x as usize] << 1;
+                        self.pc += 2;
+                    }
                     _ => panic!("Opcode {:#X} is bad", self.opcode),
                 }
+            },
+            0x9000 => {
+                // 0x9XY0: Skip next instruction if regX does not equal regY
+                let x = (self.opcode & 0x0F00) >> 8;
+                let y = (self.opcode & 0x00F0) >> 4;
+                if self.reg[x as usize] != self.reg[y as usize] {
+                    self.pc += 2;
+                }
+                self.pc += 2;
             },
             0xA000 => {
                 // 0xANNN: Sets I to the address NNN
@@ -393,6 +417,48 @@ mod test {
         assert_eq!(chip.reg[0xB], 0x0);
         assert_eq!(chip.reg[0xC], 0x1);
         assert_eq!(chip.reg[0xF], 0x1);
+    }
+
+    #[test]
+    fn op8x_6() {
+        let mut chip = Chip8::new();
+        chip.loadHex(&vec![0x81, 0x06]);
+        chip.reg[0x1] = 0b011;
+        assert_eq!(chip.pc, 512);
+        assert_eq!(chip.reg[0xF], 0);
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 514);
+        assert_eq!(chip.reg[0x1], 0b01);
+        assert_eq!(chip.reg[0xF], 0x1);
+    }
+
+    #[test]
+    fn op8x_e() {
+        let mut chip = Chip8::new();
+        chip.loadHex(&vec![0x81, 0x0E]);
+        chip.reg[0x1] = 0x81;
+        assert_eq!(chip.pc, 512);
+        assert_eq!(chip.reg[0xF], 0);
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 514);
+        assert_eq!(chip.reg[0x1], 0x81 << 1);
+        assert_eq!(chip.reg[0xF], 0x1);
+    }
+
+    #[test]
+    fn op9xy0() {
+        let mut chip = Chip8::new();
+        chip.loadHex(&vec![0x91, 0x20, 0x91, 0x30]);
+        chip.reg[0x1] = 0x81;
+        chip.reg[0x2] = 0x81;
+        chip.reg[0x3] = 0x82;
+        assert_eq!(chip.pc, 512);
+
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 514);
+
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 518);
     }
 
     #[test]
