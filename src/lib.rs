@@ -290,6 +290,31 @@ impl Chip8 {
                         self.index += self.reg[x as usize] as u16;
                         self.pc += 2;
                     }
+                    0x0033 => {
+                        // 0xFX33: Store binary coded decimal of regX
+                        // http://www.multigesture.net/wp-content/uploads/mirror/goldroad/chip8.shtml
+                        let x = ((self.opcode & 0x0F00) >> 8) as usize;
+                        self.memory[self.index as usize] = self.reg[x] / 100;
+                        self.memory[(self.index + 1) as usize] = (self.reg[x] / 10) % 10;
+                        self.memory[(self.index + 2) as usize] = (self.reg[x] % 100) % 10;
+                        self.pc += 2;
+                    }
+                    0x0055 => {
+                        // 0xFX55: Stores reg0 through regX (inclusive) in memory starting at index
+                        let x = ((self.opcode & 0x0F00) >> 8) as usize;
+                        for i in 0..(x+1) {
+                            self.memory[self.index as usize + i] = self.reg[i];
+                        }
+                        self.pc += 2;
+                    }
+                    0x0065 => {
+                        // 0xFX65: Fills reg0 through regX (inclusive) from memory starting at index
+                        let x = ((self.opcode & 0x0F00) >> 8) as usize;
+                        for i in 0..(x+1) {
+                            self.reg[i] = self.memory[self.index as usize + i];
+                        }
+                        self.pc += 2;
+                    }
                     _ => panic!("Opcode {:#X} is bad", self.opcode),
                 }
             },
@@ -624,5 +649,35 @@ mod test {
         assert_eq!(chip.pc, 514);
         assert_eq!(chip.index, init_index + chip.reg[1] as u16);
         assert_eq!(chip.reg[1], 10);
+    }
+
+    #[test]
+    fn opFx55() {
+        let mut chip = Chip8::new();
+        chip.loadHex(&vec![0xF1, 0x55]);
+        chip.index = 10;
+        chip.reg[0] = 0xAB;
+        chip.reg[1] = 0xCD;
+        assert_eq!(chip.pc, 512);
+
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 514);
+        assert_eq!(chip.memory[10], 0xAB);
+        assert_eq!(chip.memory[11], 0xCD);
+    }
+
+    #[test]
+    fn opFx65() {
+        let mut chip = Chip8::new();
+        chip.loadHex(&vec![0xF1, 0x65]);
+        chip.memory[10] = 0xAB;
+        chip.memory[11] = 0xCD;
+        chip.index = 10;
+        assert_eq!(chip.pc, 512);
+
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 514);
+        assert_eq!(chip.reg[0], 0xAB);
+        assert_eq!(chip.reg[1], 0xCD);
     }
 }
