@@ -1,7 +1,7 @@
 extern crate rand;
 
 use rand::Rng;
-use std::mem;
+use std::{fmt, mem};
 use std::num::Wrapping;
 use std::vec::Vec;
 
@@ -38,13 +38,13 @@ static FONTSET : [u8;80] = [
 fn make_bitvector(byte :u8) -> Vec<u8> {
     let mut bits = vec![0; 8];
     for i in 0..7 {
-        bits[7-i] = !!((byte >> i) & 0x1);
+        bits[i] = if 0 != byte & (0x80 >> i) { 1 } else { 0 };
     }
     bits
 }
 
 pub struct Chip8 {
-    drawFlag: bool,
+    pub drawFlag: bool,
     opcode: u16,
     memory: [u8; NMEM],
     reg: [u8; NREG],
@@ -58,10 +58,64 @@ pub struct Chip8 {
     key: [u8; 16],
 }
 
+impl fmt::Debug for Chip8 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f,
+               "Chip8:
+                 drawFlag: {}
+                 opcode: {:#X}
+                 index: {:#X}
+                 pc: {:#X}
+                 t_delay: {:#X}
+                 t_sound: {:#X}
+                 r0: {:#X}  r1: {:#X}  r2: {:#X} r3: {:#X}
+                 r4: {:#X}  r5: {:#X}  r6: {:#X} r7: {:#X}
+                 r8: {:#X}  r9: {:#X}  rA: {:#X} rB: {:#X}
+                 rC: {:#X}  rD: {:#X}  rE: {:#X} rF: {:#X}
+                 sp: {:#X}  stack: {:?}\n",
+               self.drawFlag,
+               self.opcode,
+               self.index,
+               self.pc,
+               self.timer_delay,
+               self.timer_sound,
+               self.reg[0],
+               self.reg[1],
+               self.reg[2],
+               self.reg[3],
+               self.reg[4],
+               self.reg[5],
+               self.reg[6],
+               self.reg[7],
+               self.reg[8],
+               self.reg[9],
+               self.reg[10],
+               self.reg[11],
+               self.reg[12],
+               self.reg[13],
+               self.reg[14],
+               self.reg[15],
+               self.sp,
+               self.stack,
+               );
+        write!(f, "  graphics:\n");
+        let mut row = String::with_capacity(64);
+        write!(f, "+----------------------------------------------------------------+\n");
+        for i in 0..32 {
+            for j in 0..64 {
+                row.push(if 0 == self.graphics[i * 64 + j] { ' ' } else { '#' });
+            }
+            write!(f, "|{}|\n", row);
+            row.clear();
+        }
+        write!(f, "+----------------------------------------------------------------+\n")
+    }
+}
+
 impl Chip8 {
     pub fn new() -> Self {
         let mut chip = Chip8 {
-            drawFlag: false,
+            drawFlag: true,
             opcode: 0,
             memory: [0; NMEM],
             reg: [0; NREG],
@@ -110,6 +164,7 @@ impl Chip8 {
     }
 
     pub fn executeOpcode(&mut self) {
+        println!("Opcode: {:#X}", self.opcode);
         match self.opcode & 0xF000 {
             0x0000 => {
                 match self.opcode {
@@ -118,6 +173,7 @@ impl Chip8 {
                         for i in 0..NPIXELS {
                             self.graphics[i] = 0;
                         }
+                        self.drawFlag = true;
                         self.pc += 2;
                     }
                     0x00EE => {
@@ -297,8 +353,9 @@ impl Chip8 {
             }
             0xD000 => {
                 // 0xDXYN: Draw sprint at regX,regY with N bytes of data, start at index
-                let x = self.reg[((self.opcode & 0x0F00) >> 8) as usize] as usize;
-                let y = self.reg[((self.opcode & 0x00F0) >> 4) as usize] as usize;
+                // TODO: Fix wrapping of stuff
+                let x = self.reg[((self.opcode & 0x0F00) >> 8) as usize] as i32;
+                let y = self.reg[((self.opcode & 0x00F0) >> 4) as usize] as i32;
                 let n = (self.opcode & 0x000F) as u16;
                 let start = self.index;
 
@@ -306,19 +363,22 @@ impl Chip8 {
                 for i in start..(start+n) {
                     let row_num = (i - start) as u8;
                     let bits = make_bitvector(self.memory[i as usize]);
+                    println!("BYTE: {:b}", self.memory[i as usize]);
+                    println!("AS VEC: {:?}", bits);
                     for j in 0..8 {
                         let x_s = x + j;
-                        let y_s = y + row_num as usize;
-                        if 0 <= x_s &&
+                        let y_s = y + row_num as i32;
+                        println!("{} at {}, {}", bits[j as usize],  x_s, y_s);
+                        if true {/*0 <= x_s &&
                            x_s < 64 &&
                            0 <= y_s &&
-                           y_s < 32 {
+                           y_s < 32 {*/
                                let address = (64 * y_s) + x_s;
                                if bits[j as usize] != 0 {
-                                   if 1 == self.graphics[address] {
+                                   if 1 == self.graphics[address as usize] {
                                        self.reg[0xF] = 1;
                                    }
-                                   self.graphics[address] ^= 1;
+                                   self.graphics[address as usize] ^= 1;
                                }
                            }
                     }
