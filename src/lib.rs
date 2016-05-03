@@ -357,6 +357,12 @@ impl Chip8 {
                         self.index += self.reg[x as usize] as u16;
                         self.pc += 2;
                     }
+                    0x0029 => {
+                        // 0xFX29: Sets index to location of character in regX
+                        let x = (self.opcode & 0x0F00) >> 8;
+                        self.index = 5 * self.reg[x as usize] as u16;
+                        self.pc += 2;
+                    }
                     0x0033 => {
                         // 0xFX33: Store binary coded decimal of regX
                         // http://www.multigesture.net/wp-content/uploads/mirror/goldroad/chip8.shtml
@@ -765,6 +771,19 @@ mod test {
         assert_eq!(chip.pc, 514);
         assert_eq!(chip.index, init_index + chip.reg[1] as u16);
         assert_eq!(chip.reg[1], 10);
+    }
+
+    #[test]
+    fn opFx29() {
+        let mut chip = Chip8::new();
+        chip.loadHex(&vec![0xF1, 0x29]);
+        chip.reg[1] = 0xA;
+        assert_eq!(chip.pc, 512);
+
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 514);
+        assert_eq!(chip.index, chip.reg[1] as u16 * 5);
+        assert_eq!(chip.reg[1], 0xA);
     }
 
     #[test]
