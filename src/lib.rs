@@ -369,10 +369,10 @@ impl Chip8 {
                         let x_s = x + j;
                         let y_s = y + row_num as i32;
                         println!("{} at {}, {}", bits[j as usize],  x_s, y_s);
-                        if true {/*0 <= x_s &&
+                        if 0 <= x_s &&
                            x_s < 64 &&
                            0 <= y_s &&
-                           y_s < 32 {*/
+                           y_s < 32 {
                                let address = (64 * y_s) + x_s;
                                if bits[j as usize] != 0 {
                                    if 1 == self.graphics[address as usize] {
