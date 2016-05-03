@@ -110,7 +110,6 @@ impl Chip8 {
     }
 
     pub fn executeOpcode(&mut self) {
-        // TODO Fill in table, including the missing opcdoes (0x8__5, etc)
         match self.opcode & 0xF000 {
             0x0000 => {
                 match self.opcode {
@@ -223,12 +222,40 @@ impl Chip8 {
                         self.reg[((self.opcode & 0x0F00) >> 8) as usize] = (x + y).0;
                         self.pc += 2;
                     }
+                    0x0005 => {
+                        // 0x8XY5: regX -= regY, regF = 0 if borrow, else 1
+                        let x_index = ((self.opcode & 0x0F00) >> 8) as usize;
+                        let y_index = ((self.opcode & 0x00F0) >> 4) as usize;
+                        if self.reg[y_index] > self.reg[x_index] {
+                            self.reg[0xF] = 0;
+                        } else {
+                            self.reg[0xF] = 1;
+                        }
+                        let x = Wrapping(self.reg[x_index]);
+                        let y = Wrapping(self.reg[y_index]);
+                        self.reg[x_index] = (x - y).0;
+                        self.pc += 2;
+                    }
                     0x0006 => {
                         // 0x8X_6: Shifts regX right by one, setting regF to lsb of regX before
                         let x = (self.opcode & 0x0F00) >> 8;
                         let lsb = (self.reg[x as usize] & 0x0001) as u8;
                         self.reg[0xF] = lsb;
                         self.reg[x as usize] = self.reg[x as usize] >> 1;
+                        self.pc += 2;
+                    }
+                    0x0007 => {
+                        // 0x8XY7: regX = regY - regX, regF = 0 if borrow, else 1
+                        let x_index = ((self.opcode & 0x0F00) >> 8) as usize;
+                        let y_index = ((self.opcode & 0x00F0) >> 4) as usize;
+                        if self.reg[x_index] > self.reg[y_index] {
+                            self.reg[0xF] = 0;
+                        } else {
+                            self.reg[0xF] = 1;
+                        }
+                        let x = Wrapping(self.reg[x_index]);
+                        let y = Wrapping(self.reg[y_index]);
+                        self.reg[x_index] = (y - x).0;
                         self.pc += 2;
                     }
                     0x000E => {
@@ -610,6 +637,29 @@ mod test {
     }
 
     #[test]
+    fn op8xy5() {
+        let mut chip = Chip8::new();
+        chip.loadHex(&vec![0x8A, 0xB5, 0x8A, 0xB5]);
+        chip.reg[0xA] = 0x01;
+        chip.reg[0xB] = 0x02;
+        assert_eq!(chip.pc, 512);
+
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 514);
+        assert_eq!(chip.reg[0xA], 0xFF);
+        assert_eq!(chip.reg[0xB], 0x02);
+        assert_eq!(chip.reg[0xF], 0x00);
+        chip.reg[0xA] = 0x02;
+        chip.reg[0xB] = 0x01;
+
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 516);
+        assert_eq!(chip.reg[0xA], 0x1);
+        assert_eq!(chip.reg[0xB], 0x1);
+        assert_eq!(chip.reg[0xF], 0x1);
+    }
+
+    #[test]
     fn op8x_6() {
         let mut chip = Chip8::new();
         chip.loadHex(&vec![0x81, 0x06]);
@@ -620,6 +670,29 @@ mod test {
         assert_eq!(chip.pc, 514);
         assert_eq!(chip.reg[0x1], 0b01);
         assert_eq!(chip.reg[0xF], 0x1);
+    }
+
+    #[test]
+    fn op8xy7() {
+        let mut chip = Chip8::new();
+        chip.loadHex(&vec![0x8A, 0xB7, 0x8A, 0xB7]);
+        chip.reg[0xA] = 0x01;
+        chip.reg[0xB] = 0x02;
+        assert_eq!(chip.pc, 512);
+
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 514);
+        assert_eq!(chip.reg[0xA], 0x01);
+        assert_eq!(chip.reg[0xB], 0x02);
+        assert_eq!(chip.reg[0xF], 0x01);
+        chip.reg[0xA] = 0x02;
+        chip.reg[0xB] = 0x01;
+
+        chip.emulateCycle();
+        assert_eq!(chip.pc, 516);
+        assert_eq!(chip.reg[0xA], 0xFF);
+        assert_eq!(chip.reg[0xB], 0x01);
+        assert_eq!(chip.reg[0xF], 0x0);
     }
 
     #[test]
