@@ -18,7 +18,7 @@ fn main() {
 
     // Initialize the emulator and load the game
     let mut chip = Chip8::new();
-    let mut file = match File::open("PONG") {
+    let mut file = match File::open(path) {
         Err(why) => panic!("Couldn't open {}: {}", display, Error::description(&why)),
         Ok(file) => file,
     };
@@ -34,10 +34,7 @@ fn main() {
     chip.loadHex(&game);
 
     // Emulation loop
-    let mut counter = 0;
     loop {
-        if counter > 10 {
-        }
         chip.emulateCycle();
 
         if chip.drawFlag {
@@ -46,7 +43,6 @@ fn main() {
             print!("{:?}", chip);
             chip.drawFlag = false;
         }
-        counter += 1;
 
         // Store key press state
         //chip.setKeys();

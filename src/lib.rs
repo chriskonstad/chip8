@@ -164,7 +164,6 @@ impl Chip8 {
     }
 
     pub fn executeOpcode(&mut self) {
-        println!("Opcode: {:#X}", self.opcode);
         match self.opcode & 0xF000 {
             0x0000 => {
                 match self.opcode {
@@ -363,12 +362,9 @@ impl Chip8 {
                 for i in start..(start+n) {
                     let row_num = (i - start) as u8;
                     let bits = make_bitvector(self.memory[i as usize]);
-                    println!("BYTE: {:b}", self.memory[i as usize]);
-                    println!("AS VEC: {:?}", bits);
                     for j in 0..8 {
                         let x_s = x + j;
                         let y_s = y + row_num as i32;
-                        println!("{} at {}, {}", bits[j as usize],  x_s, y_s);
                         if 0 <= x_s &&
                            x_s < 64 &&
                            0 <= y_s &&
