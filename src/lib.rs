@@ -35,6 +35,14 @@ static FONTSET : [u8;80] = [
   0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 ];
 
+fn make_bitvector(byte :u8) -> Vec<u8> {
+    let mut bits = vec![0; 8];
+    for i in 0..7 {
+        bits[7-i] = !!((byte >> i) & 0x1);
+    }
+    bits
+}
+
 pub struct Chip8 {
     drawFlag: bool,
     opcode: u16,
@@ -260,6 +268,37 @@ impl Chip8 {
                 self.reg[x as usize] = nn & (rand::thread_rng().gen_range(0,255) as u8);
                 self.pc += 2;
             }
+            0xD000 => {
+                // 0xDXYN: Draw sprint at regX,regY with N bytes of data, start at index
+                let x = self.reg[((self.opcode & 0x0F00) >> 8) as usize] as usize;
+                let y = self.reg[((self.opcode & 0x00F0) >> 4) as usize] as usize;
+                let n = (self.opcode & 0x000F) as u16;
+                let start = self.index;
+
+                self.reg[0xF] = 0;
+                for i in start..(start+n) {
+                    let row_num = (i - start) as u8;
+                    let bits = make_bitvector(self.memory[i as usize]);
+                    for j in 0..8 {
+                        let x_s = x + j;
+                        let y_s = y + row_num as usize;
+                        if 0 <= x_s &&
+                           x_s < 64 &&
+                           0 <= y_s &&
+                           y_s < 32 {
+                               let address = (64 * y_s) + x_s;
+                               if bits[j as usize] != 0 {
+                                   if 1 == self.graphics[address] {
+                                       self.reg[0xF] = 1;
+                                   }
+                                   self.graphics[address] ^= 1;
+                               }
+                           }
+                    }
+                }
+                self.drawFlag = true;
+                self.pc += 2;
+            }
             0xE000 => {
                 match self.opcode & 0x00FF {
                     0x009E => {
@@ -368,6 +407,13 @@ impl Chip8 {
 #[cfg(test)]
 mod test {
     use super::Chip8;
+    use super::make_bitvector;
+
+    #[test]
+    fn bitvector() {
+        assert_eq!(vec![0,1,1,0,1,1,1,0],
+                   make_bitvector(0b01101110));
+    }
 
     #[test]
     fn op00E0() {
