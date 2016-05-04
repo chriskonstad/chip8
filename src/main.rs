@@ -6,6 +6,7 @@ use std::io::prelude::*;
 use std::fs::File;
 use std::time::{Duration, Instant};
 use std::thread::sleep;
+use std::thread;
 use std::path::Path;
 
 use sdl2::pixels::Color;
@@ -125,5 +126,12 @@ fn main() {
         // Store key press state
         let keyboard_state = KeyboardState::new(&event_pump);
         check_keys(&mut chip, &keyboard_state);
+
+        // Make sound
+        if chip.make_sound {
+            unsafe {
+                println!("{}", std::char::from_u32_unchecked(7));
+            }
+        }
     }
 }

@@ -56,6 +56,7 @@ pub struct Chip8 {
     stack: [u16; 16],
     sp: u16,
     pub key: [u8; 16],
+    pub make_sound: bool,
 }
 
 impl fmt::Debug for Chip8 {
@@ -127,6 +128,7 @@ impl Chip8 {
             stack: [0; 16],
             sp: 0,
             key: [0; 16],
+            make_sound: false,
         };
 
         // Initialize the font set
@@ -485,10 +487,10 @@ impl Chip8 {
             self.timer_delay -= 1;
         }
 
+        self.make_sound = false;
         if self.timer_sound > 0 {
             if self.timer_sound == 1 {
-                // TODO beep
-                //unimplemented!();
+                self.make_sound = true;
             }
             self.timer_sound -= 1;
         }
