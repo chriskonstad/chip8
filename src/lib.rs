@@ -98,15 +98,15 @@ impl fmt::Debug for Chip8 {
                self.reg[15],
                self.sp,
                self.stack,
-               );
-        write!(f, "  graphics:\n");
+               ).unwrap();
+        write!(f, "  graphics:\n").unwrap();
         let mut row = String::with_capacity(64);
-        write!(f, "+----------------------------------------------------------------+\n");
+        write!(f, "+----------------------------------------------------------------+\n").unwrap();
         for i in 0..32 {
             for j in 0..64 {
                 row.push(if 0 == self.graphics[i * 64 + j] { ' ' } else { '#' });
             }
-            write!(f, "|{}|\n", row);
+            write!(f, "|{}|\n", row).unwrap();
             row.clear();
         }
         write!(f, "+----------------------------------------------------------------+\n")
