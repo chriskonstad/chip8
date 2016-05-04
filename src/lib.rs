@@ -55,7 +55,7 @@ pub struct Chip8 {
     timer_sound: u8,
     stack: [u16; 16],
     sp: u16,
-    key: [u8; 16],
+    pub key: [u8; 16],
 }
 
 impl fmt::Debug for Chip8 {
@@ -179,6 +179,7 @@ impl Chip8 {
                         // 0x00EE: Return from subroutine
                         self.sp -= 1;
                         self.pc = self.stack[self.sp as usize];
+                        self.pc += 2;
                     }
                     _ => panic!("Opcode {:#X} is bad", self.opcode),
                 }
@@ -230,8 +231,9 @@ impl Chip8 {
             0x7000 => {
                 // 0x7XNN: Add NN to regX
                 let x = (self.opcode & 0x0F00) >> 8;
-                let nn = (self.opcode & 0x00FF) as u8;
-                self.reg[x as usize] += nn;
+                let nn = Wrapping((self.opcode & 0x00FF) as u8);
+                let x_val = Wrapping(self.reg[x as usize]);
+                self.reg[x as usize] = (x_val + nn).0;
                 self.pc += 2;
             },
             0x8000 => {
@@ -486,7 +488,7 @@ impl Chip8 {
         if self.timer_sound > 0 {
             if self.timer_sound == 1 {
                 // TODO beep
-                unimplemented!();
+                //unimplemented!();
             }
             self.timer_sound -= 1;
         }
@@ -525,7 +527,7 @@ mod test {
         assert_eq!(chip.pc, 512);
 
         chip.emulateCycle();
-        assert_eq!(chip.pc, 0x42);
+        assert_eq!(chip.pc, 0x44);
         assert_eq!(chip.sp, 0);
     }
 

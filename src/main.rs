@@ -4,7 +4,7 @@ extern crate sdl2;
 use std::error::Error;
 use std::io::prelude::*;
 use std::fs::File;
-use std::time::{Duration,Instant};
+use std::time::{Duration, Instant};
 use std::thread::sleep;
 use std::path::Path;
 
@@ -12,7 +12,7 @@ use sdl2::pixels::Color;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::rect::Rect;
 use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
+use sdl2::keyboard::{Keycode, KeyboardState, Scancode};
 
 use libchip8::Chip8;
 
@@ -20,12 +20,28 @@ const scale : u32 = 8;
 const width : u32 = 64 * scale;
 const height : u32 = 32 * scale;
 
+fn check_keys(chip : &mut Chip8, kb : &KeyboardState) {
+    chip.key[0x0] = if kb.is_scancode_pressed(Scancode::Num0) { 1 } else { 0 };
+    chip.key[0x1] = if kb.is_scancode_pressed(Scancode::Num1) { 1 } else { 0 };
+    chip.key[0x2] = if kb.is_scancode_pressed(Scancode::Num2) { 1 } else { 0 };
+    chip.key[0x3] = if kb.is_scancode_pressed(Scancode::Num3) { 1 } else { 0 };
+    chip.key[0x4] = if kb.is_scancode_pressed(Scancode::Num4) { 1 } else { 0 };
+    chip.key[0x5] = if kb.is_scancode_pressed(Scancode::Num5) { 1 } else { 0 };
+    chip.key[0x6] = if kb.is_scancode_pressed(Scancode::Num6) { 1 } else { 0 };
+    chip.key[0x7] = if kb.is_scancode_pressed(Scancode::Num7) { 1 } else { 0 };
+    chip.key[0x8] = if kb.is_scancode_pressed(Scancode::Num8) { 1 } else { 0 };
+    chip.key[0x9] = if kb.is_scancode_pressed(Scancode::Num9) { 1 } else { 0 };
+    chip.key[0xA] = if kb.is_scancode_pressed(Scancode::A) { 1 } else { 0 };
+    chip.key[0xB] = if kb.is_scancode_pressed(Scancode::B) { 1 } else { 0 };
+    chip.key[0xC] = if kb.is_scancode_pressed(Scancode::C) { 1 } else { 0 };
+    chip.key[0xD] = if kb.is_scancode_pressed(Scancode::D) { 1 } else { 0 };
+    chip.key[0xE] = if kb.is_scancode_pressed(Scancode::E) { 1 } else { 0 };
+    chip.key[0xF] = if kb.is_scancode_pressed(Scancode::F) { 1 } else { 0 };
+}
+
 fn main() {
     println!("Chip8 emulator in Rust");
 
-    // TODO Setup the render system
-    // setupGraphics();
-    // setupInput();
     let path = Path::new("PONG");
     let display = path.display();
 
@@ -41,9 +57,6 @@ fn main() {
         Err(why) => panic!("Couldn't read {}: {}", display, Error::description(&why)),
         Ok(_) => (),
     };
-
-    //let test = vec![0x62, 0x00, 0x61, 0x0B, 0xF1, 0x29, 0xD2, 0x05];
-    //chip.loadHex(&test);
     chip.loadHex(&game);
 
     let sdl_context = sdl2::init().unwrap();
@@ -70,10 +83,10 @@ fn main() {
     // Emulation loop
     'running: loop {
         let last_frame = Instant::now().duration_since(current_time);
-        println!("Last frame: {:?}", last_frame);
+        //println!("Last frame: {:?}", last_frame);
         if last_frame < one_frame {
             let diff = one_frame - last_frame;
-            println!("Sleeping for: {:?}", diff);
+            //println!("Sleeping for: {:?}", diff);
             sleep(diff);
         }
         current_time = Instant::now();
@@ -90,9 +103,7 @@ fn main() {
         chip.emulateCycle();
 
         if chip.drawFlag {
-            // TODO
-            // drawGraphics();
-            print!("{:?}", chip);
+            //print!("{:?}", chip);
             chip.drawFlag = false;
             texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
                 for y in 0..32 {
@@ -112,6 +123,7 @@ fn main() {
         }
 
         // Store key press state
-        //chip.setKeys();
+        let keyboard_state = KeyboardState::new(&event_pump);
+        check_keys(&mut chip, &keyboard_state);
     }
 }
