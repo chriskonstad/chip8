@@ -50,7 +50,7 @@ pub struct Chip8 {
     reg: [u8; NREG],
     index: u16,
     pc: u16,
-    graphics: [u8; NPIXELS],
+    pub graphics: [u8; NPIXELS],
     timer_delay: u8,
     timer_sound: u8,
     stack: [u16; 16],
