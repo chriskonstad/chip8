@@ -18,31 +18,31 @@ const WIDTH : u32 = 64 * SCALE;
 const HEIGHT : u32 = 32 * SCALE;
 
 fn check_keys(chip : &mut Chip8, kb : &KeyboardState) {
-    chip.key[0x0] = if kb.is_scancode_pressed(Scancode::Num0) { 1 } else { 0 };
-    chip.key[0x1] = if kb.is_scancode_pressed(Scancode::Num1) { 1 } else { 0 };
-    chip.key[0x2] = if kb.is_scancode_pressed(Scancode::Num2) { 1 } else { 0 };
-    chip.key[0x3] = if kb.is_scancode_pressed(Scancode::Num3) { 1 } else { 0 };
-    chip.key[0x4] = if kb.is_scancode_pressed(Scancode::Num4) { 1 } else { 0 };
-    chip.key[0x5] = if kb.is_scancode_pressed(Scancode::Num5) { 1 } else { 0 };
-    chip.key[0x6] = if kb.is_scancode_pressed(Scancode::Num6) { 1 } else { 0 };
-    chip.key[0x7] = if kb.is_scancode_pressed(Scancode::Num7) { 1 } else { 0 };
-    chip.key[0x8] = if kb.is_scancode_pressed(Scancode::Num8) { 1 } else { 0 };
-    chip.key[0x9] = if kb.is_scancode_pressed(Scancode::Num9) { 1 } else { 0 };
-    chip.key[0xA] = if kb.is_scancode_pressed(Scancode::A) { 1 } else { 0 };
-    chip.key[0xB] = if kb.is_scancode_pressed(Scancode::B) { 1 } else { 0 };
-    chip.key[0xC] = if kb.is_scancode_pressed(Scancode::C) { 1 } else { 0 };
-    chip.key[0xD] = if kb.is_scancode_pressed(Scancode::D) { 1 } else { 0 };
-    chip.key[0xE] = if kb.is_scancode_pressed(Scancode::E) { 1 } else { 0 };
-    chip.key[0xF] = if kb.is_scancode_pressed(Scancode::F) { 1 } else { 0 };
+    chip.key[0x0] = kb.is_scancode_pressed(Scancode::Num0) as u8;
+    chip.key[0x1] = kb.is_scancode_pressed(Scancode::Num1) as u8;
+    chip.key[0x2] = kb.is_scancode_pressed(Scancode::Num2) as u8;
+    chip.key[0x3] = kb.is_scancode_pressed(Scancode::Num3) as u8;
+    chip.key[0x4] = kb.is_scancode_pressed(Scancode::Num4) as u8;
+    chip.key[0x5] = kb.is_scancode_pressed(Scancode::Num5) as u8;
+    chip.key[0x6] = kb.is_scancode_pressed(Scancode::Num6) as u8;
+    chip.key[0x7] = kb.is_scancode_pressed(Scancode::Num7) as u8;
+    chip.key[0x8] = kb.is_scancode_pressed(Scancode::Num8) as u8;
+    chip.key[0x9] = kb.is_scancode_pressed(Scancode::Num9) as u8;
+    chip.key[0xA] = kb.is_scancode_pressed(Scancode::A) as u8;
+    chip.key[0xB] = kb.is_scancode_pressed(Scancode::B) as u8;
+    chip.key[0xC] = kb.is_scancode_pressed(Scancode::C) as u8;
+    chip.key[0xD] = kb.is_scancode_pressed(Scancode::D) as u8;
+    chip.key[0xE] = kb.is_scancode_pressed(Scancode::E) as u8;
+    chip.key[0xF] = kb.is_scancode_pressed(Scancode::F) as u8;
 }
 
 fn main() {
     println!("Chip8 emulator in Rust");
 
+    // Initialize the emulator and load the game
     let path = Path::new("PONG");
     let display = path.display();
 
-    // Initialize the emulator and load the game
     let mut chip = Chip8::new();
     let mut file = match File::open(path) {
         Err(why) => panic!("Couldn't open {}: {}", display, Error::description(&why)),
@@ -56,6 +56,7 @@ fn main() {
     };
     chip.load_hex(&game);
 
+    // Setup the graphics and input
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
