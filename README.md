@@ -6,3 +6,6 @@
 [ ] Add keyboard maps
 [ ] Fix flickering
 [ ] Change colors?
+
+# Games
+You can find games [here](http://www.zophar.net/pdroms/chip8/chip-8-games-pack.html).
