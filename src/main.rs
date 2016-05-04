@@ -54,7 +54,7 @@ fn main() {
         Err(why) => panic!("Couldn't read {}: {}", display, Error::description(&why)),
         Ok(_) => (),
     };
-    chip.loadHex(&game);
+    chip.load_hex(&game);
 
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -97,11 +97,11 @@ fn main() {
                 _ => {}
             }
         }
-        chip.emulateCycle();
+        chip.emulate_cycle();
 
-        if chip.drawFlag {
+        if chip.draw_flag {
             //print!("{:?}", chip);
-            chip.drawFlag = false;
+            chip.draw_flag = false;
             texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
                 for y in 0..32 {
                     for x in 0..64 {
