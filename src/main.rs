@@ -4,6 +4,8 @@ extern crate sdl2;
 use std::error::Error;
 use std::io::prelude::*;
 use std::fs::File;
+use std::time::{Duration,Instant};
+use std::thread::sleep;
 use std::path::Path;
 
 use sdl2::pixels::Color;
@@ -60,10 +62,21 @@ fn main() {
     let mut texture = renderer.create_texture_streaming(
         PixelFormatEnum::RGB24, 64, 32).unwrap();
 
+    // TODO TEST AT 60frames a second!
+    // This isn't set to 60Hz because that was too slow
+    let one_frame = Duration::from_millis(1);
+    let mut current_time = Instant::now();
+
     // Emulation loop
     'running: loop {
-        // TODO LIMIT TO 60Hz
-
+        let last_frame = Instant::now().duration_since(current_time);
+        println!("Last frame: {:?}", last_frame);
+        if last_frame < one_frame {
+            let diff = one_frame - last_frame;
+            println!("Sleeping for: {:?}", diff);
+            sleep(diff);
+        }
+        current_time = Instant::now();
 
         // Handle quit event
         for event in event_pump.poll_iter() {
@@ -79,7 +92,7 @@ fn main() {
         if chip.drawFlag {
             // TODO
             // drawGraphics();
-            //print!("{:?}", chip);
+            print!("{:?}", chip);
             chip.drawFlag = false;
             texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
                 for y in 0..32 {
