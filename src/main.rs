@@ -60,22 +60,20 @@ fn main() {
     };
     chip.load_hex(&game);
 
-    // Setup the graphics and input
+    // Setup the graphics
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
-
     let window = video_subsystem.window("Chip8 Emulator", WIDTH, HEIGHT)
         .position_centered()
         .opengl()
         .build()
         .unwrap();
-
     let mut renderer = window.renderer().build().unwrap();
-
-    let mut event_pump = sdl_context.event_pump().unwrap();
-
     let mut texture = renderer.create_texture_streaming(
         PixelFormatEnum::RGB24, 64, 32).unwrap();
+
+    // Setup the input
+    let mut event_pump = sdl_context.event_pump().unwrap();
 
     // TODO TEST AT 60frames a second!
     // This isn't set to 60Hz because that was too slow
@@ -84,6 +82,7 @@ fn main() {
 
     // Emulation loop
     'running: loop {
+        // Keep timing okay
         let last_frame = Instant::now().duration_since(current_time);
         debug!("Last frame: {:?}", last_frame);
         if last_frame < one_frame {
@@ -102,8 +101,11 @@ fn main() {
                 _ => {}
             }
         }
+
+        // Run a cycle on the chip
         chip.emulate_cycle();
 
+        // Render the frame if needed
         if chip.draw_flag {
             debug!("{:?}", chip);
             chip.draw_flag = false;
