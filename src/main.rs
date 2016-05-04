@@ -1,4 +1,7 @@
 extern crate libchip8;
+#[macro_use]
+extern crate log;
+extern crate env_logger;
 extern crate sdl2;
 
 use libchip8::Chip8;
@@ -37,7 +40,8 @@ fn check_keys(chip : &mut Chip8, kb : &KeyboardState) {
 }
 
 fn main() {
-    println!("Chip8 emulator in Rust");
+    env_logger::init().unwrap();
+    println!("Chip8 emulator starting...");
 
     // Initialize the emulator and load the game
     let path = Path::new("PONG");
@@ -81,10 +85,10 @@ fn main() {
     // Emulation loop
     'running: loop {
         let last_frame = Instant::now().duration_since(current_time);
-        //println!("Last frame: {:?}", last_frame);
+        debug!("Last frame: {:?}", last_frame);
         if last_frame < one_frame {
             let diff = one_frame - last_frame;
-            //println!("Sleeping for: {:?}", diff);
+            debug!("Sleeping for: {:?}", diff);
             sleep(diff);
         }
         current_time = Instant::now();
@@ -101,7 +105,7 @@ fn main() {
         chip.emulate_cycle();
 
         if chip.draw_flag {
-            //print!("{:?}", chip);
+            debug!("{:?}", chip);
             chip.draw_flag = false;
             texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
                 for y in 0..32 {
