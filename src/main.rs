@@ -1,9 +1,14 @@
 extern crate libchip8;
+extern crate sdl2;
 
 use std::error::Error;
 use std::io::prelude::*;
 use std::fs::File;
 use std::path::Path;
+
+use sdl2::pixels::Color;
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
 
 use libchip8::Chip8;
 
@@ -33,8 +38,32 @@ fn main() {
     //chip.loadHex(&test);
     chip.loadHex(&game);
 
+    let sdl_context = sdl2::init().unwrap();
+    let video_subsystem = sdl_context.video().unwrap();
+
+    let window = video_subsystem.window("Chip8 Emulator", 64, 32)
+        .position_centered()
+        .opengl()
+        .build()
+        .unwrap();
+
+    let mut renderer = window.renderer().build().unwrap();
+    renderer.set_draw_color(Color::RGB(255, 0, 0));
+    renderer.clear();
+    renderer.present();
+
+    let mut event_pump = sdl_context.event_pump().unwrap();
+
     // Emulation loop
-    loop {
+    'running: loop {
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+                    break 'running
+                },
+                _ => {}
+            }
+        }
         chip.emulateCycle();
 
         if chip.drawFlag {
