@@ -1,25 +1,21 @@
 extern crate libchip8;
 extern crate sdl2;
 
-use std::error::Error;
-use std::io::prelude::*;
-use std::fs::File;
-use std::time::{Duration, Instant};
-use std::thread::sleep;
-use std::thread;
-use std::path::Path;
-
-use sdl2::pixels::Color;
-use sdl2::pixels::PixelFormatEnum;
-use sdl2::rect::Rect;
+use libchip8::Chip8;
 use sdl2::event::Event;
 use sdl2::keyboard::{Keycode, KeyboardState, Scancode};
+use sdl2::pixels::PixelFormatEnum;
+use sdl2::rect::Rect;
+use std::error::Error;
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::Path;
+use std::thread::sleep;
+use std::time::{Duration, Instant};
 
-use libchip8::Chip8;
-
-const scale : u32 = 8;
-const width : u32 = 64 * scale;
-const height : u32 = 32 * scale;
+const SCALE : u32 = 8;
+const WIDTH : u32 = 64 * SCALE;
+const HEIGHT : u32 = 32 * SCALE;
 
 fn check_keys(chip : &mut Chip8, kb : &KeyboardState) {
     chip.key[0x0] = if kb.is_scancode_pressed(Scancode::Num0) { 1 } else { 0 };
@@ -63,7 +59,7 @@ fn main() {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
-    let window = video_subsystem.window("Chip8 Emulator", width, height)
+    let window = video_subsystem.window("Chip8 Emulator", WIDTH, HEIGHT)
         .position_centered()
         .opengl()
         .build()
@@ -119,7 +115,7 @@ fn main() {
 
             }).unwrap();
             renderer.clear();
-            renderer.copy(&texture, None, Some(Rect::new(0, 0, width, height)));
+            renderer.copy(&texture, None, Some(Rect::new(0, 0, WIDTH, HEIGHT)));
             renderer.present();
         }
 

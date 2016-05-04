@@ -1,7 +1,7 @@
 extern crate rand;
 
 use rand::Rng;
-use std::{fmt, mem};
+use std::fmt;
 use std::num::Wrapping;
 use std::vec::Vec;
 
