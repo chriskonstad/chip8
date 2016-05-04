@@ -14,6 +14,10 @@ use sdl2::keyboard::Keycode;
 
 use libchip8::Chip8;
 
+const scale : u32 = 8;
+const width : u32 = 64 * scale;
+const height : u32 = 32 * scale;
+
 fn main() {
     println!("Chip8 emulator in Rust");
 
@@ -43,24 +47,25 @@ fn main() {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
-    let window = video_subsystem.window("Chip8 Emulator", 800, 600)
+    let window = video_subsystem.window("Chip8 Emulator", width, height)
         .position_centered()
         .opengl()
         .build()
         .unwrap();
 
     let mut renderer = window.renderer().build().unwrap();
-    //renderer.set_draw_color(Color::RGB(255, 0, 0));
-    //renderer.clear();
-    //renderer.present();
 
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     let mut texture = renderer.create_texture_streaming(
-        PixelFormatEnum::RGB24, 256, 256).unwrap();
+        PixelFormatEnum::RGB24, 64, 32).unwrap();
 
     // Emulation loop
     'running: loop {
+        // TODO LIMIT TO 60Hz
+
+
+        // Handle quit event
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
@@ -74,7 +79,7 @@ fn main() {
         if chip.drawFlag {
             // TODO
             // drawGraphics();
-            print!("{:?}", chip);
+            //print!("{:?}", chip);
             chip.drawFlag = false;
             texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
                 for y in 0..32 {
@@ -89,9 +94,7 @@ fn main() {
 
             }).unwrap();
             renderer.clear();
-            renderer.copy(&texture, None, Some(Rect::new(100, 100, 256, 256)));
-            //renderer.copy_ex(&texture, None,
-            //              Some(Rect::new(450, 100, 256, 256)), 30.0, None, false, false).unwrap();
+            renderer.copy(&texture, None, Some(Rect::new(0, 0, width, height)));
             renderer.present();
         }
 
