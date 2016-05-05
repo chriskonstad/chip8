@@ -7,11 +7,10 @@ extern crate sdl2;
 
 mod audio;
 mod graphics;
+mod input;
 
 use chip8::Chip8;
 use clap::{Arg, App};
-use sdl2::event::Event;
-use sdl2::keyboard::{Keycode, KeyboardState, Scancode};
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
@@ -21,25 +20,6 @@ use std::time::Duration;
 const SCALE : u32 = 8;
 const WIDTH : u32 = 64 * SCALE;
 const HEIGHT : u32 = 32 * SCALE;
-
-fn check_keys(chip : &mut Chip8, kb : &KeyboardState) {
-    chip.key[0x0] = kb.is_scancode_pressed(Scancode::Num0) as u8;
-    chip.key[0x1] = kb.is_scancode_pressed(Scancode::Num1) as u8;
-    chip.key[0x2] = kb.is_scancode_pressed(Scancode::Num2) as u8;
-    chip.key[0x3] = kb.is_scancode_pressed(Scancode::Num3) as u8;
-    chip.key[0x4] = kb.is_scancode_pressed(Scancode::Num4) as u8;
-    chip.key[0x5] = kb.is_scancode_pressed(Scancode::Num5) as u8;
-    chip.key[0x6] = kb.is_scancode_pressed(Scancode::Num6) as u8;
-    chip.key[0x7] = kb.is_scancode_pressed(Scancode::Num7) as u8;
-    chip.key[0x8] = kb.is_scancode_pressed(Scancode::Num8) as u8;
-    chip.key[0x9] = kb.is_scancode_pressed(Scancode::Num9) as u8;
-    chip.key[0xA] = kb.is_scancode_pressed(Scancode::A) as u8;
-    chip.key[0xB] = kb.is_scancode_pressed(Scancode::B) as u8;
-    chip.key[0xC] = kb.is_scancode_pressed(Scancode::C) as u8;
-    chip.key[0xD] = kb.is_scancode_pressed(Scancode::D) as u8;
-    chip.key[0xE] = kb.is_scancode_pressed(Scancode::E) as u8;
-    chip.key[0xF] = kb.is_scancode_pressed(Scancode::F) as u8;
-}
 
 fn version() -> &'static str {
     concat!(env!("CARGO_PKG_VERSION_MAJOR"),
@@ -91,24 +71,16 @@ fn main() {
                                             WIDTH,
                                             HEIGHT,
                                             Duration::from_millis(2));
-
-    // Setup the audio
     let mut beeper = audio::Beeper::new(&sdl_context,
                                         Duration::from_millis(250));
-
-    // Setup the input
-    let mut event_pump = sdl_context.event_pump().unwrap();
+    let mut keyboard = input::Keyboard::new(&sdl_context);
 
     // Emulation loop
     'running: loop {
-        // Handle quit event
-        for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
-                    break 'running
-                },
-                _ => {}
-            }
+        // Check the input and store it on the chip
+        match keyboard.check(&mut chip.key) {
+            input::Command::Quit => break 'running,
+            input::Command::Continue => {}
         }
 
         // Run a cycle on the chip
@@ -120,10 +92,6 @@ fn main() {
             chip.draw_flag = false;
             window.draw_frame(&chip.graphics);
         }
-
-        // Store key press state
-        let keyboard_state = KeyboardState::new(&event_pump);
-        check_keys(&mut chip, &keyboard_state);
 
         // Make sound
         beeper.set_beep(chip.make_sound);
