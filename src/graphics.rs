@@ -28,8 +28,8 @@ impl<'a> Display<'a> {
             .opengl()
             .build()
             .unwrap();
-        let mut renderer = window.renderer().build().unwrap();
-        let mut texture = renderer.create_texture_streaming(
+        let renderer = window.renderer().build().unwrap();
+        let texture = renderer.create_texture_streaming(
             PixelFormatEnum::RGB24, 64, 32).unwrap();
 
         Display {
