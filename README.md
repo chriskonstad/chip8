@@ -5,7 +5,7 @@
 * [x] Add command line flags for options
 * [x] Add documentation
 * [ ] Write blog article
-* [ ] Move sound to SDL
+* [x] Move sound to SDL
 * [ ] Limit sound counter to 60Hz
 * [ ] Add benchmarks?
 * [ ] Publish?
