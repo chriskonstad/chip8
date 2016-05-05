@@ -2,6 +2,9 @@
 name = "chip8"
 version = "0.1.0"
 authors = ["Chris Konstad <chriskon149@gmail.com>"]
+readme = "README.md"
+license = "MIT"
+keywords = ["chip8", "emulator"]
 
 [lib]
 name = "libchip8"
