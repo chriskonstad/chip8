@@ -1,12 +1,12 @@
+extern crate chip8;
 extern crate clap;
-extern crate libchip8;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
 extern crate sdl2;
 
+use chip8::Chip8;
 use clap::{Arg, App};
-use libchip8::Chip8;
 use sdl2::event::Event;
 use sdl2::keyboard::{Keycode, KeyboardState, Scancode};
 use sdl2::pixels::PixelFormatEnum;

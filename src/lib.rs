@@ -5,8 +5,13 @@ use std::fmt;
 use std::num::Wrapping;
 use std::vec::Vec;
 
+/// The size of the chip's memory (RAM and ROM storage).
 const NMEM : usize = 4096;
+
+/// The number of registers.
 const NREG : usize = 16;
+
+/// The number of pixels. Chip8 assumes a 64 x 32 pixel screen.
 const NPIXELS : usize = 64 * 32;
 
 /*
@@ -16,6 +21,7 @@ const NPIXELS : usize = 64 * 32;
  * 0x050-0x0A0: 4x5 pixel font set (0-F)
  * 0x200-0xFFF: Program ROM and RAM
  */
+/// The built in fonts that are loaded into memory during initialization.
 static FONTSET : [u8;80] = [
   0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
   0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -35,6 +41,7 @@ static FONTSET : [u8;80] = [
   0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 ];
 
+/// Turn a byte, `(u8)`, into a vector of bits.
 fn make_bitvector(byte :u8) -> Vec<u8> {
     let mut bits = vec![0; 8];
     for i in 0..7 {
@@ -43,6 +50,8 @@ fn make_bitvector(byte :u8) -> Vec<u8> {
     bits
 }
 
+/// The Chip8 emulator.  This can load vectors of `u8` representations of ROMs
+/// and play them.
 pub struct Chip8 {
     pub draw_flag: bool,
     opcode: u16,
@@ -114,6 +123,7 @@ impl fmt::Debug for Chip8 {
 }
 
 impl Chip8 {
+    /// Constructs a new Chip8 emulator.
     pub fn new() -> Self {
         let mut chip = Chip8 {
             draw_flag: true,
@@ -139,12 +149,17 @@ impl Chip8 {
         chip
     }
 
+    /// Loads the given bytes into the chip's memory.
     pub fn load_hex(&mut self, game: &Vec<u8>) {
         for c in 0..game.len() {
             self.memory[c + 512] = game[c];
         }
     }
 
+    /// Run the emulator through a single cycle.
+    /// # Panics
+    /// If the emulator comes across an invalid opcode, it will panic with a
+    /// description of the error (including the invalid opcode).
     pub fn emulate_cycle(&mut self) {
         // Fetch opcode
         self.fetch_opcode();
@@ -156,11 +171,14 @@ impl Chip8 {
         self.update_timers();
     }
 
+    /// Read the next opcode from memory.
     fn fetch_opcode(&mut self) {
         self.opcode = (self.memory[self.pc as usize] as u16) << 8 |
             self.memory[(self.pc + 1) as usize] as u16;
     }
 
+    /// Run the current opcode, storing the results in the chip.
+    /// # Panics
     fn execute_opcode(&mut self) {
         match self.opcode & 0xF000 {
             0x0000 => {
@@ -478,6 +496,7 @@ impl Chip8 {
         }
     }
 
+    /// Update the chip's internal timers for delay and sound.
     fn update_timers(&mut self) {
         if self.timer_delay > 0 {
             self.timer_delay -= 1;

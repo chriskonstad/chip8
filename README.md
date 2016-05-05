@@ -3,7 +3,7 @@
 [x] Get sound working
 [x] Clean up code
 [x] Add command line flags for options
-[ ] Add documentation
+[x] Add documentation
 [ ] Write blog article
 [ ] Move sound to SDL
 [ ] Limit sound counter to 60Hz
