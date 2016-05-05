@@ -6,19 +6,17 @@ extern crate env_logger;
 extern crate sdl2;
 
 mod audio;
+mod graphics;
 
 use chip8::Chip8;
 use clap::{Arg, App};
 use sdl2::event::Event;
 use sdl2::keyboard::{Keycode, KeyboardState, Scancode};
-use sdl2::pixels::PixelFormatEnum;
-use sdl2::rect::Rect;
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
-use std::thread::sleep;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 const SCALE : u32 = 8;
 const WIDTH : u32 = 64 * SCALE;
@@ -83,42 +81,26 @@ fn main() {
     };
     chip.load_hex(&game);
 
-    // Setup the graphics
+    // Prepare SDL for video, audio, and input
     let sdl_context = sdl2::init().unwrap();
-    let video_subsystem = sdl_context.video().unwrap();
-    let window = video_subsystem.window("Chip8 Emulator", WIDTH, HEIGHT)
-        .position_centered()
-        .opengl()
-        .build()
-        .unwrap();
-    let mut renderer = window.renderer().build().unwrap();
-    let mut texture = renderer.create_texture_streaming(
-        PixelFormatEnum::RGB24, 64, 32).unwrap();
-
-    // Setup the input
-    let mut event_pump = sdl_context.event_pump().unwrap();
 
     // TODO TEST AT 60frames a second!
     // This isn't set to 60Hz because that was too slow
-    let one_frame = Duration::from_millis(1);
-    let mut current_time = Instant::now();
+    let mut window = graphics::Display::new(&sdl_context,
+                                            "Chip8 Emulator",
+                                            WIDTH,
+                                            HEIGHT,
+                                            Duration::from_millis(2));
 
     // Setup the audio
     let mut beeper = audio::Beeper::new(&sdl_context,
                                         Duration::from_millis(250));
 
+    // Setup the input
+    let mut event_pump = sdl_context.event_pump().unwrap();
+
     // Emulation loop
     'running: loop {
-        // Keep timing okay
-        let last_frame = Instant::now().duration_since(current_time);
-        debug!("Last frame: {:?}", last_frame);
-        if last_frame < one_frame {
-            let diff = one_frame - last_frame;
-            debug!("Sleeping for: {:?}", diff);
-            sleep(diff);
-        }
-        current_time = Instant::now();
-
         // Handle quit event
         for event in event_pump.poll_iter() {
             match event {
@@ -136,21 +118,7 @@ fn main() {
         if chip.draw_flag {
             debug!("{:?}", chip);
             chip.draw_flag = false;
-            texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-                for y in 0..32 {
-                    for x in 0..64 {
-                        let offset = y*pitch + x*3;
-                        let value = if 0 != chip.graphics[y * 64 + x] { 255 } else { 0 };
-                        buffer[offset + 0] = value as u8;
-                        buffer[offset + 1] = value as u8;
-                        buffer[offset + 2] = 0;
-                    }
-                }
-
-            }).unwrap();
-            renderer.clear();
-            renderer.copy(&texture, None, Some(Rect::new(0, 0, WIDTH, HEIGHT)));
-            renderer.present();
+            window.draw_frame(&chip.graphics);
         }
 
         // Store key press state

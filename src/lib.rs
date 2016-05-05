@@ -12,7 +12,7 @@ const NMEM : usize = 4096;
 const NREG : usize = 16;
 
 /// The number of pixels. Chip8 assumes a 64 x 32 pixel screen.
-const NPIXELS : usize = 64 * 32;
+pub const NPIXELS : usize = 64 * 32;
 
 /*
  * From http://www.multigesture.net/articles/how-to-write-an-emulator-chip-8-interpreter/
