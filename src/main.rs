@@ -1,9 +1,11 @@
+extern crate clap;
 extern crate libchip8;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
 extern crate sdl2;
 
+use clap::{Arg, App};
 use libchip8::Chip8;
 use sdl2::event::Event;
 use sdl2::keyboard::{Keycode, KeyboardState, Scancode};
@@ -39,12 +41,31 @@ fn check_keys(chip : &mut Chip8, kb : &KeyboardState) {
     chip.key[0xF] = kb.is_scancode_pressed(Scancode::F) as u8;
 }
 
+fn version() -> &'static str {
+    concat!(env!("CARGO_PKG_VERSION_MAJOR"),
+    ".",
+    env!("CARGO_PKG_VERSION_MINOR"),
+    ".",
+    env!("CARGO_PKG_VERSION_PATCH")
+    )
+}
+
 fn main() {
     env_logger::init().unwrap();
+
+    let matches = App::new("Chip8 Emulator")
+        .version(version())
+        .author("Chris Konstad <chriskon149@gmail.com>")
+        .about("Runs Chip8 games.")
+        .arg(Arg::with_name("ROM")
+             .help("Sets the path to the ROM to play")
+             .required(true))
+        .get_matches();
+
     println!("Chip8 emulator starting...");
 
     // Initialize the emulator and load the game
-    let path = Path::new("PONG");
+    let path = Path::new(matches.value_of("ROM").unwrap());
     let display = path.display();
 
     let mut chip = Chip8::new();

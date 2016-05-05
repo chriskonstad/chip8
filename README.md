@@ -2,7 +2,7 @@
 [x] Get keyboard input working
 [x] Get sound working
 [x] Clean up code
-[ ] Add command line flags for options
+[x] Add command line flags for options
 [ ] Add documentation
 [ ] Write blog article
 [ ] Move sound to SDL
