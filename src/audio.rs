@@ -30,7 +30,7 @@ pub struct Beeper {
 }
 
 impl Beeper {
-    pub fn new(context: Sdl, duration: Duration) -> Self {
+    pub fn new(context: &Sdl, duration: Duration) -> Self {
         let desired_spec = AudioSpecDesired {
             freq: Some(44100),
             channels: Some(1),

@@ -104,7 +104,7 @@ fn main() {
     let mut current_time = Instant::now();
 
     // Setup the audio
-    let mut beeper = audio::Beeper::new(sdl_context,
+    let mut beeper = audio::Beeper::new(&sdl_context,
                                         Duration::from_millis(250));
 
     // Emulation loop
