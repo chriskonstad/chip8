@@ -7,6 +7,7 @@ use sdl2::Sdl;
 use std::time::{Duration, Instant};
 use std::thread::sleep;
 
+/// Represents a display.  In this case, it represents an SDL window.
 pub struct Display<'a> {
     width: u32,
     height: u32,
@@ -17,6 +18,13 @@ pub struct Display<'a> {
 }
 
 impl<'a> Display<'a> {
+    /// Constructs a new SDL window with the given SDL context,
+    /// the given title, the given width (in pixels, the given height
+    /// (in pixels), and the given frame duration.
+    ///
+    /// The frame duration is used to set how long each frame should last.
+    /// Higher values lead to slower emulator performance but also help
+    /// smooth the framerate.
     pub fn new(context: &Sdl,
                title: &str,
                width: u32,
@@ -42,6 +50,9 @@ impl<'a> Display<'a> {
         }
     }
 
+    /// The window draws the give bitmap image on the Display's frame duration.
+    ///
+    /// If there is time left over, that time is spent sleeping.
     pub fn draw_frame(&mut self, bitmap: &[u8; chip8::NPIXELS]) {
         // Keep timing okay
         let prev_duration = Instant::now().duration_since(self.frame_last);

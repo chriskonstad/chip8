@@ -2,6 +2,7 @@ use sdl2::audio::{AudioCallback, AudioDevice, AudioSpecDesired};
 use sdl2::Sdl;
 use std::time::{Duration, Instant};
 
+/// Represents a square wave.
 pub struct SquareWave {
     phase_inc: f32,
     phase: f32,
@@ -23,6 +24,7 @@ impl AudioCallback for SquareWave {
     }
 }
 
+/// Represents a device for making a 'beep' noise.
 pub struct Beeper {
     pub device: AudioDevice<SquareWave>,
     duration: Duration,
@@ -30,6 +32,7 @@ pub struct Beeper {
 }
 
 impl Beeper {
+    /// Constructs a Beeper using the give SDL context.
     pub fn new(context: &Sdl, duration: Duration) -> Self {
         let desired_spec = AudioSpecDesired {
             freq: Some(44100),
@@ -56,6 +59,8 @@ impl Beeper {
         }
     }
 
+    /// Starts the beep if necessary, and stops the beep if the beep duration
+    /// has passed.
     pub fn set_beep(&mut self, enable: bool) {
         if enable {
             self.start = Instant::now();

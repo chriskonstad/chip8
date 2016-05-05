@@ -8,33 +8,29 @@ extern crate sdl2;
 mod audio;
 mod graphics;
 mod input;
+mod loader;
 
 use chip8::Chip8;
 use clap::{Arg, App};
-use std::error::Error;
-use std::fs::File;
-use std::io::prelude::*;
-use std::path::Path;
 use std::time::Duration;
 
+/// Adjust the scaling factor of the chip8's display.  The larger the number,
+/// the bigger the display.
 const SCALE : u32 = 8;
-const WIDTH : u32 = 64 * SCALE;
-const HEIGHT : u32 = 32 * SCALE;
 
-fn version() -> &'static str {
-    concat!(env!("CARGO_PKG_VERSION_MAJOR"),
-    ".",
-    env!("CARGO_PKG_VERSION_MINOR"),
-    ".",
-    env!("CARGO_PKG_VERSION_PATCH")
-    )
-}
+/// The scaled width of the display.
+const WIDTH : u32 = chip8::WIDTH * SCALE;
+
+/// The scaled height of the display.
+const HEIGHT : u32 = chip8::HEIGHT * SCALE;
 
 fn main() {
+    // Init the logger
     env_logger::init().unwrap();
 
+    // Setup the commandline flags and usage/help message.
     let matches = App::new("Chip8 Emulator")
-        .version(version())
+        .version(chip8::version())
         .author("Chris Konstad <chriskon149@gmail.com>")
         .about("Runs Chip8 games.")
         .arg(Arg::with_name("ROM")
@@ -45,24 +41,14 @@ fn main() {
     println!("Chip8 emulator starting...");
 
     // Initialize the emulator and load the game
-    let path = Path::new(matches.value_of("ROM").unwrap());
-    let display = path.display();
-
     let mut chip = Chip8::new();
-    let mut file = match File::open(path) {
-        Err(why) => panic!("Couldn't open {}: {}", display, Error::description(&why)),
-        Ok(file) => file,
-    };
-
-    let mut game = Vec::new();
-    match file.read_to_end(&mut game) {
-        Err(why) => panic!("Couldn't read {}: {}", display, Error::description(&why)),
-        Ok(_) => (),
-    };
-    chip.load_hex(&game);
+    chip.load_hex(&loader::load_file(matches.value_of("ROM").unwrap()));
 
     // Prepare SDL for video, audio, and input
     let sdl_context = sdl2::init().unwrap();
+    let mut beeper = audio::Beeper::new(&sdl_context,
+                                        Duration::from_millis(250));
+    let mut keyboard = input::Keyboard::new(&sdl_context);
 
     // TODO TEST AT 60frames a second!
     // This isn't set to 60Hz because that was too slow
@@ -71,9 +57,6 @@ fn main() {
                                             WIDTH,
                                             HEIGHT,
                                             Duration::from_millis(2));
-    let mut beeper = audio::Beeper::new(&sdl_context,
-                                        Duration::from_millis(250));
-    let mut keyboard = input::Keyboard::new(&sdl_context);
 
     // Emulation loop
     'running: loop {
@@ -93,7 +76,7 @@ fn main() {
             window.draw_frame(&chip.graphics);
         }
 
-        // Make sound
+        // Make sound if needed
         beeper.set_beep(chip.make_sound);
     }
 }

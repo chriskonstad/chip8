@@ -5,22 +5,30 @@ use sdl2::EventPump;
 use sdl2::Sdl;
 use sdl2::keyboard::{Keycode, KeyboardState, Scancode};
 
+/// This struct keeps track of the SDL EventPump, which is used for scanning
+/// the keyboard for key presses.
 pub struct Keyboard {
     event_pump: EventPump,
 }
 
+/// This enum says whether or not the user is trying to quit.
 pub enum Command {
+    /// The caller should quit.
     Quit,
+    /// The caller should continue running.
     Continue,
 }
 
 impl Keyboard {
+    /// Constructs a new Keyboard from the given SDL context.
     pub fn new(context: &Sdl) -> Self {
         Keyboard {
             event_pump: context.event_pump().unwrap(),
         }
     }
 
+    /// Checks the keyboard's keys, looking for quit events and which keys
+    /// should be marked as pressed in the given key state array.
     pub fn check(&mut self, keys: &mut [u8; 16]) -> Command {
         // Handle quit event
         for event in self.event_pump.poll_iter() {

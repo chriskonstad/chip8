@@ -6,13 +6,19 @@ use std::num::Wrapping;
 use std::vec::Vec;
 
 /// The size of the chip's memory (RAM and ROM storage).
-const NMEM : usize = 4096;
+const NMEM: usize = 4096;
 
 /// The number of registers.
-const NREG : usize = 16;
+const NREG: usize = 16;
 
-/// The number of pixels. Chip8 assumes a 64 x 32 pixel screen.
-pub const NPIXELS : usize = 64 * 32;
+/// The width of the display (in pixels)
+pub const WIDTH: u32 = 64;
+
+/// The height of the display (in pixels)
+pub const HEIGHT: u32 = 32;
+
+/// The total number of pixels.
+pub const NPIXELS: usize = (WIDTH * HEIGHT) as usize;
 
 /*
  * From http://www.multigesture.net/articles/how-to-write-an-emulator-chip-8-interpreter/
@@ -22,7 +28,7 @@ pub const NPIXELS : usize = 64 * 32;
  * 0x200-0xFFF: Program ROM and RAM
  */
 /// The built in fonts that are loaded into memory during initialization.
-static FONTSET : [u8;80] = [
+static FONTSET: [u8;80] = [
   0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
   0x20, 0x60, 0x20, 0x20, 0x70, // 1
   0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -40,6 +46,16 @@ static FONTSET : [u8;80] = [
   0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
   0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 ];
+
+/// Returns a string for the version of the library.
+pub fn version() -> &'static str {
+    concat!(env!("CARGO_PKG_VERSION_MAJOR"),
+    ".",
+    env!("CARGO_PKG_VERSION_MINOR"),
+    ".",
+    env!("CARGO_PKG_VERSION_PATCH")
+    )
+}
 
 /// Turn a byte, `(u8)`, into a vector of bits.
 fn make_bitvector(byte :u8) -> Vec<u8> {
