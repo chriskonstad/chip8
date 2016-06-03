@@ -1,6 +1,6 @@
 [package]
 name = "chip8"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Chris Konstad <chriskon149@gmail.com>"]
 readme = "README.md"
 license = "MIT"
@@ -16,6 +16,7 @@ path = "src/main.rs"
 doc = false
 
 [dependencies]
+bit-vec = "0.4.3"
 clap = "*"
 env_logger = "0.3"
 log = "0.3"

@@ -41,7 +41,7 @@ fn main() {
     println!("Chip8 emulator starting...");
 
     // Initialize the emulator and load the game
-    let mut chip = Chip8::new();
+    let mut chip = Chip8::default();
     chip.load_hex(&loader::load_file(matches.value_of("ROM").unwrap()));
 
     // Prepare SDL for video, audio, and input

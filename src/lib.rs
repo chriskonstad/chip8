@@ -1,9 +1,10 @@
+extern crate bit_vec;
 extern crate rand;
 
+use bit_vec::BitVec;
 use rand::Rng;
 use std::fmt;
 use std::num::Wrapping;
-use std::vec::Vec;
 
 /// The size of the chip's memory (RAM and ROM storage).
 const NMEM: usize = 4096;
@@ -55,15 +56,6 @@ pub fn version() -> &'static str {
     ".",
     env!("CARGO_PKG_VERSION_PATCH")
     )
-}
-
-/// Turn a byte, `(u8)`, into a vector of bits.
-fn make_bitvector(byte :u8) -> Vec<u8> {
-    let mut bits = vec![0; 8];
-    for i in 0..7 {
-        bits[i] = if 0 != byte & (0x80 >> i) { 1 } else { 0 };
-    }
-    bits
 }
 
 /// The Chip8 emulator.  This can load vectors of `u8` representations of ROMs
@@ -138,9 +130,9 @@ impl fmt::Debug for Chip8 {
     }
 }
 
-impl Chip8 {
+impl Default for Chip8 {
     /// Constructs a new Chip8 emulator.
-    pub fn new() -> Self {
+    fn default() -> Self {
         let mut chip = Chip8 {
             draw_flag: true,
             opcode: 0,
@@ -158,17 +150,19 @@ impl Chip8 {
         };
 
         // Initialize the font set
-        for i in 0..80 {
-            chip.memory[i] = FONTSET[i];
+        for (i, item) in FONTSET.iter().enumerate().take(80) {
+            chip.memory[i] = *item;
         }
 
         chip
     }
+}
 
+impl Chip8 {
     /// Loads the given bytes into the chip's memory.
-    pub fn load_hex(&mut self, game: &Vec<u8>) {
-        for c in 0..game.len() {
-            self.memory[c + 512] = game[c];
+    pub fn load_hex(&mut self, game: &[u8]) {
+        for (i, byte) in game.iter().enumerate() {
+            self.memory[i + 512] = *byte;
         }
     }
 
@@ -281,21 +275,21 @@ impl Chip8 {
                         // 0x8XY1: Set regX to regX | regY
                         let x = (self.opcode & 0x0F00) >> 8;
                         let y = (self.opcode & 0x00F0) >> 4;
-                        self.reg[x as usize] = self.reg[x as usize] | self.reg[y as usize];
+                        self.reg[x as usize] |= self.reg[y as usize];
                         self.pc += 2;
                     }
                     0x0002 => {
                         // 0x8XY2: Set regX to regX & regY
                         let x = (self.opcode & 0x0F00) >> 8;
                         let y = (self.opcode & 0x00F0) >> 4;
-                        self.reg[x as usize] = self.reg[x as usize] & self.reg[y as usize];
+                        self.reg[x as usize] &= self.reg[y as usize];
                         self.pc += 2;
                     }
                     0x0003 => {
                         // 0x8XY3: Set regX to regX ^ regY
                         let x = (self.opcode & 0x0F00) >> 8;
                         let y = (self.opcode & 0x00F0) >> 4;
-                        self.reg[x as usize] = self.reg[x as usize] ^ self.reg[y as usize];
+                        self.reg[x as usize] ^= self.reg[y as usize];
                         self.pc += 2;
                     }
                     0x0004 => {
@@ -330,7 +324,7 @@ impl Chip8 {
                         let x = (self.opcode & 0x0F00) >> 8;
                         let lsb = (self.reg[x as usize] & 0x0001) as u8;
                         self.reg[0xF] = lsb;
-                        self.reg[x as usize] = self.reg[x as usize] >> 1;
+                        self.reg[x as usize] >>= 1;
                         self.pc += 2;
                     }
                     0x0007 => {
@@ -352,7 +346,7 @@ impl Chip8 {
                         let x = (self.opcode & 0x0F00) >> 8;
                         let msb = ((self.reg[x as usize] & 0x80) as u8) >> 7;
                         self.reg[0xF] = msb;
-                        self.reg[x as usize] = self.reg[x as usize] << 1;
+                        self.reg[x as usize] <<= 1;
                         self.pc += 2;
                     }
                     _ => panic!("Opcode {:#X} is bad", self.opcode),
@@ -395,7 +389,7 @@ impl Chip8 {
                 self.reg[0xF] = 0;
                 for i in start..(start+n) {
                     let row_num = (i - start) as u8;
-                    let bits = make_bitvector(self.memory[i as usize]);
+                    let bits = BitVec::from_bytes(&[self.memory[i as usize]]);
                     for j in 0..8 {
                         let x_s = x + j;
                         let y_s = y + row_num as i32;
@@ -404,7 +398,7 @@ impl Chip8 {
                            0 <= y_s &&
                            y_s < 32 {
                                let address = (64 * y_s) + x_s;
-                               if bits[j as usize] != 0 {
+                               if bits[j as usize] {
                                    if 1 == self.graphics[address as usize] {
                                        self.reg[0xF] = 1;
                                    }
@@ -531,17 +525,10 @@ impl Chip8 {
 #[cfg(test)]
 mod test {
     use super::Chip8;
-    use super::make_bitvector;
 
     #[test]
-    fn bitvector() {
-        assert_eq!(vec![0,1,1,0,1,1,1,0],
-                   make_bitvector(0b01101110));
-    }
-
-    #[test]
-    fn op00E0() {
-        let mut chip = Chip8::new();
+    fn op_00e0() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0x00, 0xE0]);
         chip.graphics[1] = 1;
         assert_eq!(chip.pc, 512);
@@ -552,8 +539,8 @@ mod test {
     }
 
     #[test]
-    fn op00EE() {
-        let mut chip = Chip8::new();
+    fn op_00ee() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0x00, 0xEE]);
         chip.stack[0] = 0x42;
         chip.sp = 1;
@@ -565,8 +552,8 @@ mod test {
     }
 
     #[test]
-    fn op1nnn() {
-        let mut chip = Chip8::new();
+    fn op_1nnn() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0x16, 0x66]);
         assert_eq!(chip.pc, 512);
         chip.emulate_cycle();
@@ -574,8 +561,8 @@ mod test {
     }
 
     #[test]
-    fn op2nnn() {
-        let mut chip = Chip8::new();
+    fn op_2nnn() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0x26, 0x66]);
         assert_eq!(chip.pc, 512);
         chip.emulate_cycle();
@@ -585,8 +572,8 @@ mod test {
     }
 
     #[test]
-    fn op3xnn() {
-        let mut chip = Chip8::new();
+    fn op_3xnn() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0x31, 0x66, 0x31, 0x67]);
         chip.reg[1] = 0x67;
         assert_eq!(chip.pc, 512);
@@ -597,8 +584,8 @@ mod test {
     }
 
     #[test]
-    fn op4xnn() {
-        let mut chip = Chip8::new();
+    fn op_4xnn() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0x41, 0x66, 0x41, 0x67]);
         chip.reg[1] = 0x66;
         assert_eq!(chip.pc, 512);
@@ -609,8 +596,8 @@ mod test {
     }
 
     #[test]
-    fn op5xy0() {
-        let mut chip = Chip8::new();
+    fn op_5xy0() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0x51, 0x20, 0x51, 0x30]);
         chip.reg[1] = 0x66;
         chip.reg[2] = 0x22;
@@ -623,8 +610,8 @@ mod test {
     }
 
     #[test]
-    fn op6xnn() {
-        let mut chip = Chip8::new();
+    fn op_6xnn() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0x6A, 0x2F]);
         assert_eq!(chip.reg[0xA], 0);
         assert_eq!(chip.pc, 512);
@@ -634,8 +621,8 @@ mod test {
     }
 
     #[test]
-    fn op7xnn() {
-        let mut chip = Chip8::new();
+    fn op_7xnn() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0x7A, 0x2F]);
         chip.reg[0xA] = 0xB;
         assert_eq!(chip.reg[0xA], 0xB);
@@ -646,8 +633,8 @@ mod test {
     }
 
     #[test]
-    fn op8xy0() {
-        let mut chip = Chip8::new();
+    fn op_8xy0() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0x8A, 0x20]);
         chip.reg[0xA] = 0xB;
         chip.reg[0x2] = 0xC;
@@ -661,8 +648,8 @@ mod test {
     }
 
     #[test]
-    fn op8xy1() {
-        let mut chip = Chip8::new();
+    fn op_8xy1() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0x8A, 0x21]);
         chip.reg[0xA] = 0xB;
         chip.reg[0x2] = 0xC;
@@ -676,8 +663,8 @@ mod test {
     }
 
     #[test]
-    fn op8xy2() {
-        let mut chip = Chip8::new();
+    fn op_8xy2() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0x8A, 0x22]);
         chip.reg[0xA] = 0xB;
         chip.reg[0x2] = 0xC;
@@ -691,8 +678,8 @@ mod test {
     }
 
     #[test]
-    fn op8xy3() {
-        let mut chip = Chip8::new();
+    fn op_8xy3() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0x8A, 0x23]);
         chip.reg[0xA] = 0xB;
         chip.reg[0x2] = 0xC;
@@ -706,8 +693,8 @@ mod test {
     }
 
     #[test]
-    fn op8xy4() {
-        let mut chip = Chip8::new();
+    fn op_8xy4() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0x8A, 0xB4, 0x8B, 0xC4]);
         chip.reg[0xA] = 0x00;
         chip.reg[0xB] = 0xFF;
@@ -728,8 +715,8 @@ mod test {
     }
 
     #[test]
-    fn op8xy5() {
-        let mut chip = Chip8::new();
+    fn op_8xy5() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0x8A, 0xB5, 0x8A, 0xB5]);
         chip.reg[0xA] = 0x01;
         chip.reg[0xB] = 0x02;
@@ -751,8 +738,8 @@ mod test {
     }
 
     #[test]
-    fn op8x_6() {
-        let mut chip = Chip8::new();
+    fn op_8x06() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0x81, 0x06]);
         chip.reg[0x1] = 0b011;
         assert_eq!(chip.pc, 512);
@@ -764,8 +751,8 @@ mod test {
     }
 
     #[test]
-    fn op8xy7() {
-        let mut chip = Chip8::new();
+    fn op_8xy7() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0x8A, 0xB7, 0x8A, 0xB7]);
         chip.reg[0xA] = 0x01;
         chip.reg[0xB] = 0x02;
@@ -787,8 +774,8 @@ mod test {
     }
 
     #[test]
-    fn op8x_e() {
-        let mut chip = Chip8::new();
+    fn op_8x0e() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0x81, 0x0E]);
         chip.reg[0x1] = 0x81;
         assert_eq!(chip.pc, 512);
@@ -800,8 +787,8 @@ mod test {
     }
 
     #[test]
-    fn op9xy0() {
-        let mut chip = Chip8::new();
+    fn op_9xy0() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0x91, 0x20, 0x91, 0x30]);
         chip.reg[0x1] = 0x81;
         chip.reg[0x2] = 0x81;
@@ -816,8 +803,8 @@ mod test {
     }
 
     #[test]
-    fn opAnnn() {
-        let mut chip = Chip8::new();
+    fn op_annn() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0xA6, 0x66]);
         assert_eq!(chip.index, 0);
         assert_eq!(chip.pc, 512);
@@ -827,8 +814,8 @@ mod test {
     }
 
     #[test]
-    fn opBnnn() {
-        let mut chip = Chip8::new();
+    fn op_bnnn() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0xB6, 0x66]);
         chip.reg[0] = 0x5;
         assert_eq!(chip.index, 0);
@@ -839,8 +826,8 @@ mod test {
     }
 
     #[test]
-    fn opEx9e() {
-        let mut chip = Chip8::new();
+    fn op_ex9e() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0xE1, 0x9E, 0xE1, 0x9E]);
         chip.reg[1] = 1;
         chip.key[1] = 0;
@@ -855,8 +842,8 @@ mod test {
     }
 
     #[test]
-    fn opExa1() {
-        let mut chip = Chip8::new();
+    fn op_exa1() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0xE1, 0xA1, 0xE1, 0xA1]);
         chip.reg[1] = 1;
         chip.key[1] = 1;
@@ -871,8 +858,8 @@ mod test {
     }
 
     #[test]
-    fn opFx07() {
-        let mut chip = Chip8::new();
+    fn op_fx07() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0xF1, 0x07]);
         chip.timer_delay = 10;
         assert_eq!(chip.pc, 512);
@@ -883,8 +870,8 @@ mod test {
     }
 
     #[test]
-    fn opFx0A() {
-        let mut chip = Chip8::new();
+    fn op_fx0a() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0xF1, 0x0A]);
         assert_eq!(chip.reg[1], 0);
         assert_eq!(chip.key[1], 0);
@@ -900,8 +887,8 @@ mod test {
     }
 
     #[test]
-    fn opFx15() {
-        let mut chip = Chip8::new();
+    fn op_fx15() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0xF1, 0x15]);
         chip.reg[1] = 10;
         assert_eq!(chip.pc, 512);
@@ -912,8 +899,8 @@ mod test {
     }
 
     #[test]
-    fn opFx18() {
-        let mut chip = Chip8::new();
+    fn op_fx18() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0xF1, 0x18]);
         chip.reg[1] = 10;
         assert_eq!(chip.pc, 512);
@@ -924,8 +911,8 @@ mod test {
     }
 
     #[test]
-    fn opFx1E() {
-        let mut chip = Chip8::new();
+    fn op_fx1e() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0xF1, 0x1E]);
         chip.reg[1] = 10;
         let init_index = chip.index;
@@ -938,8 +925,8 @@ mod test {
     }
 
     #[test]
-    fn opFx29() {
-        let mut chip = Chip8::new();
+    fn op_fx29() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0xF1, 0x29]);
         chip.reg[1] = 0xA;
         assert_eq!(chip.pc, 512);
@@ -951,8 +938,8 @@ mod test {
     }
 
     #[test]
-    fn opFx55() {
-        let mut chip = Chip8::new();
+    fn op_fx55() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0xF1, 0x55]);
         chip.index = 10;
         chip.reg[0] = 0xAB;
@@ -966,8 +953,8 @@ mod test {
     }
 
     #[test]
-    fn opFx65() {
-        let mut chip = Chip8::new();
+    fn op_fx65() {
+        let mut chip = Chip8::default();
         chip.load_hex(&vec![0xF1, 0x65]);
         chip.memory[10] = 0xAB;
         chip.memory[11] = 0xCD;
