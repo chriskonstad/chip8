@@ -7,6 +7,13 @@ use sdl2::Sdl;
 use std::time::{Duration, Instant};
 use std::thread::sleep;
 
+/// Represents a color to paint the display with
+pub struct Color {
+    pub red: u8,
+    pub green: u8,
+    pub blue: u8,
+}
+
 /// Represents a display.  In this case, it represents an SDL window.
 pub struct Display<'a> {
     width: u32,
@@ -15,6 +22,7 @@ pub struct Display<'a> {
     texture: sdl2::render::Texture,
     frame_duration: Duration,
     frame_last: Instant,
+    color: Color,
 }
 
 impl<'a> Display<'a> {
@@ -29,7 +37,8 @@ impl<'a> Display<'a> {
                title: &str,
                width: u32,
                height: u32,
-               duration: Duration) -> Self {
+               duration: Duration,
+               color: Color) -> Self {
         let video_subsystem = context.video().unwrap();
         let window = video_subsystem.window(title, width, height)
             .position_centered()
@@ -47,6 +56,7 @@ impl<'a> Display<'a> {
             texture: texture,
             frame_duration: duration,
             frame_last: Instant::now(),
+            color: color,
         }
     }
 
@@ -64,14 +74,15 @@ impl<'a> Display<'a> {
         }
         self.frame_last = Instant::now();
 
+        let color = &self.color;
         self.texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
             for y in 0..32 {
                 for x in 0..64 {
                     let offset = y*pitch + x*3;
-                    let value = if 0 != bitmap[y * 64 + x] { 255 } else { 0 };
-                    buffer[offset + 0] = value as u8;
-                    buffer[offset + 1] = value as u8;
-                    buffer[offset + 2] = 0;
+                    let enabled = if 0 != bitmap[y * 64 + x] { 1 } else { 0 };
+                    buffer[offset + 0] = enabled * color.red;
+                    buffer[offset + 1] = enabled * color.green;
+                    buffer[offset + 2] = enabled * color.blue;
                 }
             }
 

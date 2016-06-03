@@ -5,7 +5,7 @@
 * [x] Add command line flags for options
 * [x] Add documentation
 * [x] Refactor `src/main.rs` into smaller, clean modules
-* [ ] Write blog article
+* [x] Write blog article
 * [x] Move sound to SDL
 * [ ] Limit sound counter to 60Hz
 * [ ] Add benchmarks?

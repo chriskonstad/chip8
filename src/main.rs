@@ -56,7 +56,12 @@ fn main() {
                                             "Chip8 Emulator",
                                             WIDTH,
                                             HEIGHT,
-                                            Duration::from_millis(2));
+                                            Duration::from_millis(2),
+                                            graphics::Color {
+                                                red: 255,
+                                                green: 0,
+                                                blue: 0,
+                                            });
 
     // Emulation loop
     'running: loop {
