@@ -13,7 +13,7 @@
 * [ ] Add command line UI in place of SDL?
 * [ ] Add keyboard maps
 * [ ] Fix flickering
-* [ ] Change colors?
+* [x] Change colors?
 
 # Games
 You can find games [here](http://www.zophar.net/pdroms/chip8/chip-8-games-pack.html).
