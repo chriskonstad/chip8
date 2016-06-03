@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 use std::thread::sleep;
 
 /// Represents a color to paint the display with
+#[derive(RustcDecodable, RustcEncodable)]
 pub struct Color {
     pub red: u8,
     pub green: u8,
